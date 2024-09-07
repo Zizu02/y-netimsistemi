@@ -1,21 +1,31 @@
-from flask import Flask, jsonify
+from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# Örnek sipariş verisi
-orders = [
-    {"id": 1, "email": "example1@example.com", "address": "123 Street", "status": "Hazırlanıyor"},
-    {"id": 2, "email": "example2@example.com", "address": "456 Avenue", "status": "Kapının Önünde"}
-]
+# Veritabanı simülasyonu
+users = []
 
-@app.route('/get_orders', methods=['GET'])
-def get_orders():
-    return jsonify({"orders": orders})
+@app.route('/create_account', methods=['POST'])
+def create_account():
+    data = request.get_json()
+    
+    email = data.get('email')
+    password = data.get('password')
+    address = data.get('address')
+    phone = data.get('phone')
 
-@app.route('/get_user_orders/<email>', methods=['GET'])
-def get_user_orders(email):
-    user_orders = [order for order in orders if order['email'] == email]
-    return jsonify({"orders": user_orders})
+    if not email or not password or not address or not phone:
+        return jsonify({"success": False, "message": "Tüm alanları doldurun!"})
+
+    # Kullanıcıyı ekle
+    users.append({
+        "email": email,
+        "password": password,
+        "address": address,
+        "phone": phone
+    })
+    
+    return jsonify({"success": True, "message": "Hesap başarıyla oluşturuldu!"})
 
 if __name__ == '__main__':
     app.run(debug=True)
