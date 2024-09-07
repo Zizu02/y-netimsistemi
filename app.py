@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'
+app.secret_key = 'your_secret_key'  # Güvenli bir anahtar belirleyin
 CORS(app)
 
 # Veritabanı simülasyonu
@@ -66,3 +66,4 @@ def get_user_info():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
