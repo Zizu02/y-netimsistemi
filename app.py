@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # Import CORS
+from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app)
 
 # Veritabanı simülasyonu
 users = []
@@ -19,6 +19,13 @@ def create_account():
     if not email or not password or not address or not phone:
         return jsonify({"success": False, "message": "Tüm alanları doldurun!"})
 
+    # E-posta ve telefon numarası kontrolü
+    for user in users:
+        if user['email'] == email:
+            return jsonify({"success": False, "message": "Bu e-posta adresi ile zaten bir hesap mevcut!"})
+        if user['phone'] == phone:
+            return jsonify({"success": False, "message": "Bu telefon numarası ile zaten bir hesap mevcut!"})
+
     # Kullanıcıyı ekle
     users.append({
         "email": email,
@@ -31,4 +38,5 @@ def create_account():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
