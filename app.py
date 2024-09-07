@@ -1,7 +1,8 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 
 app = Flask(__name__)
+app.secret_key = 'your_secret_key'
 CORS(app)
 
 # Veritabanı simülasyonu
@@ -19,12 +20,9 @@ def create_account():
     if not email or not password or not address or not phone:
         return jsonify({"success": False, "message": "Tüm alanları doldurun!"})
 
-    # E-posta ve telefon numarası kontrolü
-    for user in users:
-        if user['email'] == email:
-            return jsonify({"success": False, "message": "Bu e-posta adresi ile zaten bir hesap mevcut!"})
-        if user['phone'] == phone:
-            return jsonify({"success": False, "message": "Bu telefon numarası ile zaten bir hesap mevcut!"})
+    # Kullanıcıyı kontrol et
+    if any(u['email'] == email for u in users):
+        return jsonify({"success": False, "message": "E-posta zaten kayıtlı!"})
 
     # Kullanıcıyı ekle
     users.append({
@@ -36,14 +34,26 @@ def create_account():
     
     return jsonify({"success": True, "message": "Hesap başarıyla oluşturuldu!"})
 
-@app.route('/get_user_info', methods=['POST'])
-def get_user_info():
+@app.route('/login', methods=['POST'])
+def login():
     data = request.get_json()
     email = data.get('email')
-    
-    # Veritabanında kullanıcının bilgilerini arayın
-    user = next((u for u in users if u['email'] == email), None)
-    
+    password = data.get('password')
+
+    user = next((u for u in users if u['email'] == email and u['password'] == password), None)
+    if user:
+        session['user_email'] = email
+        return jsonify({"success": True, "message": "Giriş başarılı!"})
+    else:
+        return jsonify({"success": False, "message": "Giriş başarısız!"})
+
+@app.route('/get_user_info', methods=['GET'])
+def get_user_info():
+    user_email = session.get('user_email')
+    if not user_email:
+        return jsonify({"success": False, "message": "Kullanıcı oturumu yok!"})
+
+    user = next((u for u in users if u['email'] == user_email), None)
     if user:
         return jsonify({
             "success": True,
@@ -54,9 +64,5 @@ def get_user_info():
     else:
         return jsonify({"success": False, "message": "Kullanıcı bulunamadı!"})
 
-
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-
