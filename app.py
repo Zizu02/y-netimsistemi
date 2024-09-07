@@ -36,7 +36,20 @@ def create_account():
     
     return jsonify({"success": True, "message": "Hesap başarıyla oluşturuldu!"})
 
+@app.route('/get_user_info', methods=['POST'])
+def get_user_info():
+    data = request.get_json()
+    email = data.get('email')
+
+    # Kullanıcı bilgilerini çek
+    for user in users:
+        if user['email'] == email:
+            return jsonify(user)
+    
+    return jsonify({"success": False, "message": "Kullanıcı bulunamadı!"})
+
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
