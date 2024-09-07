@@ -3,7 +3,7 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Güvenli bir anahtar belirleyin
-CORS(app)
+CORS(app, supports_credentials=True)
 
 # Veritabanı simülasyonu
 users = []
