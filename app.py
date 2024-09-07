@@ -2,8 +2,8 @@ from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Güvenli bir anahtar belirleyin
-CORS(app, supports_credentials=True)
+app.secret_key = 'your_secret_key'
+CORS(app)
 
 # Veritabanı simülasyonu
 users = []
@@ -39,6 +39,10 @@ def login():
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
+
+    # Eğer oturum açıksa, kullanıcıyı bilgilendir
+    if 'user_email' in session:
+        return jsonify({"success": False, "message": "Oturum zaten açık!"})
 
     user = next((u for u in users if u['email'] == email and u['password'] == password), None)
     if user:
