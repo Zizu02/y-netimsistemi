@@ -40,13 +40,20 @@ def create_account():
 def get_user_info():
     data = request.get_json()
     email = data.get('email')
-
-    # Kullanıcı bilgilerini çek
-    for user in users:
-        if user['email'] == email:
-            return jsonify(user)
     
-    return jsonify({"success": False, "message": "Kullanıcı bulunamadı!"})
+    # Veritabanında kullanıcının bilgilerini arayın
+    user = next((u for u in users if u['email'] == email), None)
+    
+    if user:
+        return jsonify({
+            "success": True,
+            "email": user["email"],
+            "address": user["address"],
+            "phone": user["phone"]
+        })
+    else:
+        return jsonify({"success": False, "message": "Kullanıcı bulunamadı!"})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
