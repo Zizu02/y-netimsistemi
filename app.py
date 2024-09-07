@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 import mysql.connector
+from mysql.connector import Error
+import bcrypt
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -17,11 +19,20 @@ db_config = {
 
 # Veritabanı bağlantısı kurma
 def get_db_connection():
-    return mysql.connector.connect(**db_config)
+    try:
+        conn = mysql.connector.connect(**db_config)
+        if conn.is_connected():
+            return conn
+    except Error as e:
+        print(f"Veritabanı bağlantı hatası: {e}")
+        return None
 
 # Kullanıcıları veritabanından al
 def get_user(email):
     conn = get_db_connection()
+    if conn is None:
+        return None
+
     cursor = conn.cursor(dictionary=True)
     cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
     user = cursor.fetchone()
@@ -43,6 +54,9 @@ def create_account():
 
     # Kullanıcıyı veritabanında kontrol et
     conn = get_db_connection()
+    if conn is None:
+        return jsonify({"success": False, "message": "Veritabanı bağlantı hatası!"})
+
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
     existing_user = cursor.fetchone()
@@ -51,10 +65,13 @@ def create_account():
         conn.close()
         return jsonify({"success": False, "message": "E-posta zaten kayıtlı!"})
 
+    # Şifreyi hash'le
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
     # Yeni kullanıcıyı ekle
     cursor.execute(
         'INSERT INTO users (email, password, address, phone) VALUES (%s, %s, %s, %s)',
-        (email, password, address, phone)
+        (email, hashed_password, address, phone)
     )
     conn.commit()
     cursor.close()
@@ -70,7 +87,7 @@ def login():
     password = data.get('password')
 
     user = get_user(email)
-    if user and user['password'] == password:
+    if user and bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
         session['user_email'] = email
         return jsonify({"success": True, "message": "Giriş başarılı!"})
     else:
@@ -102,4 +119,3 @@ def logout():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
