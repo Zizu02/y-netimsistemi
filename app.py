@@ -1,8 +1,7 @@
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 import os
-import bcrypt
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
@@ -71,7 +70,6 @@ def create_account():
 
     return jsonify({"success": True, "message": "Hesap başarıyla oluşturuldu!"})
 
-
 # Kullanıcı bilgilerini getiren endpoint
 @app.route('/get_user_info', methods=['GET'])
 def get_user_info():
@@ -94,7 +92,6 @@ def get_user_info():
         return jsonify({"success": True, "user_info": user_info})
     else:
         return jsonify({"success": False, "message": "Kullanıcı bulunamadı."})
-
 
 if __name__ == '__main__':
     app.run(debug=True)
