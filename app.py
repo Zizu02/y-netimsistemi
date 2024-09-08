@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={r"/*": {"origins": "https://sapphire-algae-9ajt.squarespace.com"}})
 
 # Veritabanı bağlantı ayarları
 DATABASE_URL = os.getenv('DATABASE_URL')
