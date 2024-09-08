@@ -63,8 +63,25 @@ def create_account():
 # Kullanıcı bilgilerini getiren endpoint
 @app.route('/get_user_info', methods=['GET'])
 def get_user_info():
-    # Örnek veri döndürme
-    return jsonify({"user_info": "Örnek veri"})
+    email = request.args.get('email')
+    
+    if not email:
+        return jsonify({"success": False, "message": "E-posta sağlanmalı!"})
+
+    # Airtable'dan kullanıcı bilgilerini al
+    headers = {
+        'Authorization': f'Bearer {AIRTABLE_API_KEY}',
+        'Content-Type': 'application/json'
+    }
+    response = requests.get(AIRTABLE_API_URL + f"?filterByFormula={{Email}}='{email}'", headers=headers)
+    data = response.json()
+
+    # Eğer kullanıcı mevcutsa döndür
+    if data.get('records'):
+        user_info = data['records'][0]['fields']
+        return jsonify({"success": True, "user_info": user_info})
+    else:
+        return jsonify({"success": False, "message": "Kullanıcı bulunamadı."})
 
 if __name__ == '__main__':
     app.run(debug=True)
