@@ -60,6 +60,11 @@ def create_account():
 
     return jsonify({"success": True, "message": "Hesap başarıyla oluşturuldu!"})
 
+# Kullanıcı bilgilerini getiren endpoint
+@app.route('/get_user_info', methods=['GET'])
+def get_user_info():
+    # Örnek veri döndürme
+    return jsonify({"user_info": "Örnek veri"})
+
 if __name__ == '__main__':
     app.run(debug=True)
-
