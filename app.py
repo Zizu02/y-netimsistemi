@@ -36,7 +36,7 @@ def send_to_airtable(email, password, address, phone):
     return response.json()
 
 # Hesap oluşturma
-@app.route('/create_account', methods=['POST'])
+@@app.route('/create_account', methods=['POST'])
 def create_account():
     data = request.get_json()
     email = data.get('email')
@@ -45,7 +45,7 @@ def create_account():
     phone = data.get('phone')
 
     if not email or not password or not address or not phone:
-        return jsonify({"success": False, "message": "Tüm alanları doldurun!"})
+        return jsonify({"success": False, "message": "E-posta sağlanmalı!"})  # Bu satırı kontrol edin
 
     # Airtable'a veri gönder
     response = send_to_airtable(email, password, address, phone)
@@ -59,6 +59,7 @@ def create_account():
             return jsonify({"success": False, "message": error_message})
 
     return jsonify({"success": True, "message": "Hesap başarıyla oluşturuldu!"})
+
 
 # Kullanıcı bilgilerini getiren endpoint
 @app.route('/get_user_info', methods=['GET'])
