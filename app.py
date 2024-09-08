@@ -88,20 +88,6 @@ def get_user_info():
     else:
         return jsonify({"success": False, "message": "Kullanıcı bulunamadı."})
 
-# Test fonksiyonu
-def test_send_to_airtable():
-    email = "test@example.com"
-    password = "password"
-    address = "123 Test St"
-    phone = "1234567890"
-    
-    response = send_to_airtable(email, password, address, phone)
-    print(response)
-
-# Testi çalıştırın
-if __name__ == "__main__":
-    test_send_to_airtable()
-
-
+# Test fonksiyonunu ayrı bir dosyada çalıştırın
 if __name__ == '__main__':
     app.run(debug=True)
