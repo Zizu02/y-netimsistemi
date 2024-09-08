@@ -8,7 +8,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 
 # CORS ayarları
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, supports_credentials=True, resources={r"/*": {"origins": "https://sapphire-algae-9ajt.squarespace.com"}})
 
 # Airtable API bilgileri
 AIRTABLE_API_KEY = os.getenv('AIRTABLE_API_KEY')
