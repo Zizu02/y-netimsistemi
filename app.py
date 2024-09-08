@@ -2,11 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import psycopg2
 import os
-from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
-
-# Çevresel değişkenleri yükle
-load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
@@ -15,28 +11,10 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY')
 CORS(app, supports_credentials=True, resources={r"/*": {"origins": "https://sapphire-algae-9ajt.squarespace.com"}})
 
 # PostgreSQL bağlantı bilgileri
-DATABASE_URL = os.getenv('DATABASE_URL')
-
-def get_db_connection():
-    conn = psycopg2.connect(DATABASE_URL)
-    return conn
-
-# Tablo oluşturma
-def create_table():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            email VARCHAR(255) UNIQUE NOT NULL,
-            phone VARCHAR(20),
-            address TEXT,
-            password_hash TEXT NOT NULL
-        )
-    ''')
-    conn.commit()
-    cur.close()
-    conn.close()
+DB_NAME = os.getenv('DB_NAME')
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+DB_HOST = os.getenv('DB_HOST')
 
 # Hesap oluşturma
 @app.route('/create_account', methods=['POST'])
@@ -47,29 +25,40 @@ def create_account():
     address = data.get('address')
     phone = data.get('phone')
 
-    if not email or not password or not address or not phone:
-        return jsonify({"success": False, "message": "Eksik bilgi!"})
+    if not email:
+        return jsonify({"success": False, "message": "E-posta sağlanmalı!"})
+    if not password:
+        return jsonify({"success": False, "message": "Şifre sağlanmalı!"})
+    if not address:
+        return jsonify({"success": False, "message": "Adres sağlanmalı!"})
+    if not phone:
+        return jsonify({"success": False, "message": "Telefon numarası sağlanmalı!"})
 
-    hashed_password = generate_password_hash(password, method='sha256')
+    hashed_password = generate_password_hash(password)
+    
+    # PostgreSQL veritabanına bağlanın
+    conn = psycopg2.connect(
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        host=DB_HOST
+    )
+    cursor = conn.cursor()
 
-    conn = get_db_connection()
-    cur = conn.cursor()
     try:
-        cur.execute('''
-            INSERT INTO users (email, password_hash, address, phone)
-            VALUES (%s, %s, %s, %s)
-            ON CONFLICT (email) DO NOTHING
-        ''', (email, hashed_password, address, phone))
+        # Kullanıcıyı ekleme
+        cursor.execute("INSERT INTO users (email, password, address, phone) VALUES (%s, %s, %s, %s) ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, address = EXCLUDED.address, phone = EXCLUDED.phone", 
+                       (email, hashed_password, address, phone))
         conn.commit()
         return jsonify({"success": True, "message": "Hesap başarıyla oluşturuldu!"})
     except Exception as e:
-        conn.rollback()
-        return jsonify({"success": False, "message": str(e)})
+        print(f"Error: {e}")
+        return jsonify({"success": False, "message": "Sunucu hatası."})
     finally:
-        cur.close()
+        cursor.close()
         conn.close()
 
-# Kullanıcı bilgilerini getirme
+# Kullanıcı bilgilerini getiren endpoint
 @app.route('/get_user_info', methods=['GET'])
 def get_user_info():
     email = request.args.get('email')
@@ -77,56 +66,48 @@ def get_user_info():
     if not email:
         return jsonify({"success": False, "message": "E-posta sağlanmalı!"})
 
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute('''
-        SELECT email, phone, address, password_hash FROM users WHERE email = %s
-    ''', (email,))
-    user = cur.fetchone()
-    cur.close()
-    conn.close()
+    # PostgreSQL veritabanına bağlanın
+    conn = psycopg2.connect(
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        host=DB_HOST
+    )
+    cursor = conn.cursor()
 
-    if user:
-        return jsonify({"success": True, "user_info": {
-            "email": user[0],
-            "phone": user[1],
-            "address": user[2]
-        }})
-    else:
-        return jsonify({"success": False, "message": "Kullanıcı bulunamadı."})
-
-# Kullanıcı doğrulama
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-
-    if not email or not password:
-        return jsonify({"success": False, "message": "Eksik bilgi!"})
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute('''
-        SELECT password_hash FROM users WHERE email = %s
-    ''', (email,))
-    user = cur.fetchone()
-    cur.close()
-    conn.close()
-
-    if user and check_password_hash(user[0], password):
-        return jsonify({"success": True, "message": "Giriş başarılı!"})
-    else:
-        return jsonify({"success": False, "message": "Geçersiz e-posta veya şifre."})
+    try:
+        # Kullanıcıyı bulma
+        cursor.execute("SELECT email, address, phone FROM users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+        
+        if user:
+            user_info = {
+                "email": user[0],
+                "address": user[1],
+                "phone": user[2]
+            }
+            return jsonify({"success": True, "user_info": user_info})
+        else:
+            return jsonify({"success": False, "message": "Kullanıcı bulunamadı."})
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"success": False, "message": "Sunucu hatası."})
+    finally:
+        cursor.close()
+        conn.close()
 
 # Test fonksiyonu
-def test_create_table():
-    create_table()
-    print("Tablo oluşturuldu.")
+def test_send_to_airtable():
+    email = "test@example.com"
+    password = "password"
+    address = "123 Test St"
+    phone = "1234567890"
+    
+    response = send_to_airtable(email, password, address, phone)
+    print(response)
 
 # Testi çalıştırın
 if __name__ == "__main__":
-    test_create_table()
     app.run(debug=True)
 
 
