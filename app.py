@@ -3,6 +3,7 @@ from flask_cors import CORS
 import psycopg2
 import os
 from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Çevresel değişkenleri yükle
 load_dotenv()
@@ -49,6 +50,8 @@ def create_account():
     if not email or not password or not address or not phone:
         return jsonify({"success": False, "message": "Eksik bilgi!"})
 
+    hashed_password = generate_password_hash(password, method='sha256')
+
     conn = get_db_connection()
     cur = conn.cursor()
     try:
@@ -56,7 +59,7 @@ def create_account():
             INSERT INTO users (email, password_hash, address, phone)
             VALUES (%s, %s, %s, %s)
             ON CONFLICT (email) DO NOTHING
-        ''', (email, password, address, phone))
+        ''', (email, hashed_password, address, phone))
         conn.commit()
         return jsonify({"success": True, "message": "Hesap başarıyla oluşturuldu!"})
     except Exception as e:
@@ -77,7 +80,7 @@ def get_user_info():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute('''
-        SELECT email, phone, address FROM users WHERE email = %s
+        SELECT email, phone, address, password_hash FROM users WHERE email = %s
     ''', (email,))
     user = cur.fetchone()
     cur.close()
@@ -92,6 +95,30 @@ def get_user_info():
     else:
         return jsonify({"success": False, "message": "Kullanıcı bulunamadı."})
 
+# Kullanıcı doğrulama
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+
+    if not email or not password:
+        return jsonify({"success": False, "message": "Eksik bilgi!"})
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('''
+        SELECT password_hash FROM users WHERE email = %s
+    ''', (email,))
+    user = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if user and check_password_hash(user[0], password):
+        return jsonify({"success": True, "message": "Giriş başarılı!"})
+    else:
+        return jsonify({"success": False, "message": "Geçersiz e-posta veya şifre."})
+
 # Test fonksiyonu
 def test_create_table():
     create_table()
@@ -101,4 +128,5 @@ def test_create_table():
 if __name__ == "__main__":
     test_create_table()
     app.run(debug=True)
+
 
