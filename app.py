@@ -96,17 +96,6 @@ def get_user_info():
         cursor.close()
         conn.close()
 
-# Test fonksiyonu
-def test_send_to_airtable():
-    email = "test@example.com"
-    password = "password"
-    address = "123 Test St"
-    phone = "1234567890"
-    
-    response = send_to_airtable(email, password, address, phone)
-    print(response)
-
-# Testi çalıştırın
 if __name__ == "__main__":
     app.run(debug=True)
 
