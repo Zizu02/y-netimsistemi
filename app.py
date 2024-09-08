@@ -2,6 +2,10 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import psycopg2
 import os
+from dotenv import load_dotenv
+
+# Çevresel değişkenleri yükle
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
@@ -91,7 +95,7 @@ def get_user_info():
 # Test fonksiyonu
 def test_create_table():
     create_table()
-    print("Table created or already exists.")
+    print("Tablo oluşturuldu.")
 
 # Testi çalıştırın
 if __name__ == "__main__":
