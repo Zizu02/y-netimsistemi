@@ -83,5 +83,6 @@ def get_user_info():
     else:
         return jsonify({"success": False, "message": "Kullanıcı bulunamadı."})
 
+
 if __name__ == '__main__':
     app.run(debug=True)
