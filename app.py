@@ -2,10 +2,13 @@ from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 import requests
 import os
+import bcrypt
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
-CORS(app, supports_credentials=True)
+
+# CORS ayarları
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Airtable API bilgileri
 AIRTABLE_API_KEY = os.getenv('AIRTABLE_API_KEY')
