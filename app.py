@@ -4,7 +4,7 @@ import psycopg2
 import uuid
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})  # Bu satır tüm kökenlere izin verir
+CORS(app)  # CORS ayarlarını otomatik olarak yapılandırır
 
 # Veritabanı bağlantı ayarları (örnek)
 DATABASE_CONFIG = {
