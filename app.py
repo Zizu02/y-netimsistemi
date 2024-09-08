@@ -71,6 +71,8 @@ def create_account():
 
     return jsonify({"success": True, "message": "Hesap başarıyla oluşturuldu!"})
 
+
+
 # /get_user_info endpoint'ini kaldırabilirsiniz ya da sadece GET isteklerine cevap vermeyecek şekilde yapılandırabilirsiniz
 @app.route('/get_user_info', methods=['POST'])
 def get_user_info():
