@@ -3,7 +3,9 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "https://sapphire-algae-9ajt.squarespace.com"}})
+
+# CORS ayarları
+CORS(app, resources={r"/*": {"origins": "https://sapphire-algae-9ajt.squarespace.com", "supports_credentials": True}})
 
 # Veritabanı URL'nizi buraya ekleyin
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://depo_user:fyL02LkCj6DJnyf2oE7rLTvgGa2mSVOC@dpg-cretkstsvqrc73fmrhp0-a.frankfurt-postgres.render.com/depo'
@@ -57,14 +59,6 @@ def get_user_info():
         return jsonify({'message': 'User not found'}), 404
     
     return jsonify(user.to_dict())
-
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', 'https://sapphire-algae-9ajt.squarespace.com')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-    return response
 
 if __name__ == '__main__':
     app.run(debug=True)
