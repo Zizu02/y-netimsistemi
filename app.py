@@ -26,13 +26,16 @@ def send_to_airtable(email, password, address, phone):
     data = {
         "fields": {
             "Email": email,
-            "Password": password,  # Şifreyi hash'lemeniz daha güvenli olabilir.
+            "Password": password,
             "Address": address,
             "Phone": phone
         }
     }
     response = requests.post(AIRTABLE_API_URL, headers=headers, json=data)
+    print("Response Status Code:", response.status_code)
+    print("Response Content:", response.text)
     return response.json()
+
 
 # Hesap oluşturma
 @app.route('/create_account', methods=['POST'])
