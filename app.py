@@ -1,62 +1,80 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # CORS paketini import edin
+from flask_cors import CORS
 import psycopg2
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
+import uuid
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "https://sapphire-algae-9ajt.squarespace.com"}})
+CORS(app)  # Bu satır tüm kökenlere izin verir
 
-# Veritabanı bağlantı ayarları
-DATABASE_URL = os.getenv('DATABASE_URL')
+# Veritabanı bağlantı ayarları (örnek)
+DATABASE_CONFIG = {
+    'dbname': 'depo',
+    'user': 'depo_user',
+    'password': 'fyL02LkCj6DJnyf2oE7rLTvgGa2mSVOC',
+    'host': 'dpg-cretkstsvqrc73fmrhp0-a.frankfurt-postgres.render.com',
+}
 
-@app.route('/get_user_info', methods=['GET'])
+@app.route('/get_user_info', methods=['GET', 'OPTIONS'])
 def get_user_info():
+    if request.method == 'OPTIONS':
+        response = app.make_response('')
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return response
+
+    # Normal GET isteği işleme kodu
     email = request.args.get('email')
     if not email:
-        return jsonify({'success': False, 'message': 'E-posta sağlanmalı!'}), 400
+        return jsonify({'error': 'Email parameter is missing'}), 400
 
     try:
-        conn = psycopg2.connect(DATABASE_URL)
-        cur = conn.cursor()
-        cur.execute("SELECT email, address, phone FROM users WHERE email = %s", (email,))
-        user = cur.fetchone()
-        cur.close()
+        conn = psycopg2.connect(**DATABASE_CONFIG)
+        cursor = conn.cursor()
+        cursor.execute("SELECT email, address, phone FROM users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+        cursor.close()
         conn.close()
 
         if user:
             return jsonify({'success': True, 'email': user[0], 'address': user[1], 'phone': user[2]})
         else:
-            return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı!'}), 404
+            return jsonify({'success': False, 'message': 'User not found'}), 404
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        print(f"Error: {e}")
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
-@app.route('/create_account', methods=['POST'])
-def create_account():
-    data = request.get_json()
+@app.route('/create_payment', methods=['POST', 'OPTIONS'])
+def create_payment():
+    if request.method == 'OPTIONS':
+        response = app.make_response('')
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return response
+
+    data = request.json
     email = data.get('email')
-    password = data.get('password')
-    address = data.get('address')
-    phone = data.get('phone')
+    payment_amount = data.get('payment_amount')
+    user_name = data.get('user_name')
+    user_address = data.get('user_address')
+    user_phone = data.get('user_phone')
+    merchant_oid = data.get('merchant_oid')
 
-    if not email or not password:
-        return jsonify({'success': False, 'message': 'E-posta ve şifre sağlanmalı!'}), 400
+    if not all([email, payment_amount, user_name, user_address, user_phone, merchant_oid]):
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
 
     try:
-        conn = psycopg2.connect(DATABASE_URL)
-        cur = conn.cursor()
-        cur.execute("INSERT INTO users (email, password, address, phone) VALUES (%s, %s, %s, %s)", 
-                    (email, password, address, phone))
-        conn.commit()
-        cur.close()
-        conn.close()
+        # Burada ödeme işlemi başlatma kodu eklenmelidir
+        # Örnek olarak bir token oluşturalım
+        token = str(uuid.uuid4())
 
-        return jsonify({'success': True, 'message': 'Hesap başarıyla oluşturuldu!'})
+        return jsonify({'success': True, 'token': token})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        print(f"Error: {e}")
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
