@@ -44,7 +44,11 @@ def create_account():
     address = data.get('address')
     phone = data.get('phone')
 
-    # Verileri kontrol et
+    print('Email:', email)
+    print('Password:', password)
+    print('Address:', address)
+    print('Phone:', phone)
+
     if not email:
         return jsonify({"success": False, "message": "E-posta sağlanmalı!"})
     if not password:
