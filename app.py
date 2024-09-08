@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import requests
+import psycopg2
 import os
 
 app = Flask(__name__)
@@ -9,37 +9,29 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY')
 # CORS ayarları
 CORS(app, supports_credentials=True, resources={r"/*": {"origins": "https://sapphire-algae-9ajt.squarespace.com"}})
 
-# Airtable API bilgileri
-AIRTABLE_API_KEY = os.getenv('AIRTABLE_API_KEY')
-AIRTABLE_BASE_ID = os.getenv('AIRTABLE_BASE_ID')
-AIRTABLE_TABLE_NAME = os.getenv('AIRTABLE_TABLE_NAME')
+# PostgreSQL bağlantı bilgileri
+DATABASE_URL = os.getenv('DATABASE_URL')
 
-# Airtable API URL
-AIRTABLE_API_URL = f'https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}'
+def get_db_connection():
+    conn = psycopg2.connect(DATABASE_URL)
+    return conn
 
-# Airtable'a veri gönder
-def send_to_airtable(email, password, address, phone):
-    headers = {
-        'Authorization': f'Bearer {AIRTABLE_API_KEY}',
-        'Content-Type': 'application/json'
-    }
-    data = {
-        "fields": {
-            "İsim": "Test Kullanıcı",  # Test verisi; gerçek uygulamada burayı kullanıcının adı ile değiştirmelisiniz
-            "Siparişler": "Test Siparişler",  # Test verisi
-            "E-posta": email,
-            "Telefon": phone,
-            "Adres": address,
-            "Ödenen": 100  # Test verisi; gerçek uygulamada bu değeri kullanıcının ödediği tutar ile değiştirmelisiniz
-        }
-    }
-    response = requests.post(AIRTABLE_API_URL, headers=headers, json=data)
-    
-    # Yanıtı kontrol et
-    print("Status Code:", response.status_code)
-    print("Response JSON:", response.json())
-
-    return response.json()
+# Tablo oluşturma
+def create_table():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            phone VARCHAR(20),
+            address TEXT,
+            password_hash TEXT NOT NULL
+        )
+    ''')
+    conn.commit()
+    cur.close()
+    conn.close()
 
 # Hesap oluşturma
 @app.route('/create_account', methods=['POST'])
@@ -50,29 +42,27 @@ def create_account():
     address = data.get('address')
     phone = data.get('phone')
 
-    if not email:
-        return jsonify({"success": False, "message": "E-posta sağlanmalı!"})
-    if not password:
-        return jsonify({"success": False, "message": "Şifre sağlanmalı!"})
-    if not address:
-        return jsonify({"success": False, "message": "Adres sağlanmalı!"})
-    if not phone:
-        return jsonify({"success": False, "message": "Telefon numarası sağlanmalı!"})
+    if not email or not password or not address or not phone:
+        return jsonify({"success": False, "message": "Eksik bilgi!"})
 
-    # Airtable'a veri gönder
-    response = send_to_airtable(email, password, address, phone)
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute('''
+            INSERT INTO users (email, password_hash, address, phone)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (email) DO NOTHING
+        ''', (email, password, address, phone))
+        conn.commit()
+        return jsonify({"success": True, "message": "Hesap başarıyla oluşturuldu!"})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)})
+    finally:
+        cur.close()
+        conn.close()
 
-    # Airtable'dan gelen yanıtı kontrol et
-    if response.get('error'):
-        error_message = response['error'].get('message', 'Hata oluştu')
-        if 'Duplicate' in error_message:
-            return jsonify({"success": False, "message": "E-posta veya telefon ile başka hesap mevcut!"})
-        else:
-            return jsonify({"success": False, "message": error_message})
-
-    return jsonify({"success": True, "message": "Hesap başarıyla oluşturuldu!"})
-
-# Kullanıcı bilgilerini getiren endpoint
+# Kullanıcı bilgilerini getirme
 @app.route('/get_user_info', methods=['GET'])
 def get_user_info():
     email = request.args.get('email')
@@ -80,33 +70,31 @@ def get_user_info():
     if not email:
         return jsonify({"success": False, "message": "E-posta sağlanmalı!"})
 
-    # Airtable'dan kullanıcı bilgilerini al
-    headers = {
-        'Authorization': f'Bearer {AIRTABLE_API_KEY}',
-        'Content-Type': 'application/json'
-    }
-    response = requests.get(AIRTABLE_API_URL + f"?filterByFormula={{Email}}='{email}'", headers=headers)
-    data = response.json()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('''
+        SELECT email, phone, address FROM users WHERE email = %s
+    ''', (email,))
+    user = cur.fetchone()
+    cur.close()
+    conn.close()
 
-    # Eğer kullanıcı mevcutsa döndür
-    if data.get('records'):
-        user_info = data['records'][0]['fields']
-        return jsonify({"success": True, "user_info": user_info})
+    if user:
+        return jsonify({"success": True, "user_info": {
+            "email": user[0],
+            "phone": user[1],
+            "address": user[2]
+        }})
     else:
         return jsonify({"success": False, "message": "Kullanıcı bulunamadı."})
 
 # Test fonksiyonu
-def test_send_to_airtable():
-    email = "test@example.com"
-    password = "password"
-    address = "123 Test St"
-    phone = "1234567890"
-    
-    response = send_to_airtable(email, password, address, phone)
-    print(response)
+def test_create_table():
+    create_table()
+    print("Table created or already exists.")
 
 # Testi çalıştırın
 if __name__ == "__main__":
-    test_send_to_airtable()
+    test_create_table()
     app.run(debug=True)
 
