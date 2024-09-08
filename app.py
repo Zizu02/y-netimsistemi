@@ -44,8 +44,15 @@ def create_account():
     address = data.get('address')
     phone = data.get('phone')
 
-    if not email or not password or not address or not phone:
+    # Verileri kontrol et
+    if not email:
         return jsonify({"success": False, "message": "E-posta sağlanmalı!"})
+    if not password:
+        return jsonify({"success": False, "message": "Şifre sağlanmalı!"})
+    if not address:
+        return jsonify({"success": False, "message": "Adres sağlanmalı!"})
+    if not phone:
+        return jsonify({"success": False, "message": "Telefon numarası sağlanmalı!"})
 
     # Airtable'a veri gönder
     response = send_to_airtable(email, password, address, phone)
@@ -59,6 +66,7 @@ def create_account():
             return jsonify({"success": False, "message": error_message})
 
     return jsonify({"success": True, "message": "Hesap başarıyla oluşturuldu!"})
+
 
 # Kullanıcı bilgilerini getiren endpoint
 @app.route('/get_user_info', methods=['GET'])
