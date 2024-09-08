@@ -6,8 +6,14 @@ import os
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 
-# CORS ayarları
-CORS(app, supports_credentials=True, resources={r"/*": {"origins": "https://sapphire-algae-9ajt.squarespace.com"}})
+# CORS ayarları: Belirli bir origin ve belirli HTTP yöntemlerini izin ver
+CORS(app, supports_credentials=True, resources={
+    r"/*": {
+        "origins": "https://sapphire-algae-9ajt.squarespace.com",
+        "methods": ["POST"],  # Yalnızca POST yöntemine izin ver
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 # Airtable API bilgileri
 AIRTABLE_API_KEY = os.getenv('AIRTABLE_API_KEY')
@@ -64,6 +70,11 @@ def create_account():
             return jsonify({"success": False, "message": error_message})
 
     return jsonify({"success": True, "message": "Hesap başarıyla oluşturuldu!"})
+
+# /get_user_info endpoint'ini kaldırabilirsiniz ya da sadece GET isteklerine cevap vermeyecek şekilde yapılandırabilirsiniz
+@app.route('/get_user_info', methods=['POST'])
+def get_user_info():
+    return jsonify({"success": False, "message": "Bu endpoint sadece POST isteklerine açıktır."})
 
 if __name__ == '__main__':
     app.run(debug=True)
