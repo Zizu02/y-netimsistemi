@@ -1,94 +1,126 @@
-from flask import Flask, request, jsonify, session, redirect, url_for
+from flask import Flask, request, jsonify, session
 from flask_cors import CORS
-import requests
-import os
+import mysql.connector
+from mysql.connector import Error
+import bcrypt
 from dotenv import load_dotenv
+import os
 
-# Çevresel değişkenleri yükle
+# .env dosyasını yükle
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 CORS(app, supports_credentials=True)
 
-# Airtable API ayarları
-AIRTABLE_API_KEY = os.getenv('AIRTABLE_API_KEY')
-AIRTABLE_BASE_ID = os.getenv('AIRTABLE_BASE_ID')
-AIRTABLE_TABLE_NAME = os.getenv('AIRTABLE_TABLE_NAME')
+# MySQL veritabanı bağlantı ayarları
+db_config = {
+    'user': os.getenv('DB_USER'),
+    'password': os.getenv('DB_PASSWORD'),
+    'host': os.getenv('DB_HOST'),
+    'database': os.getenv('DB_NAME'),
+    'raise_on_warnings': True
+}
 
-# GitHub OAuth ayarları
-GITHUB_CLIENT_ID = os.getenv('GITHUB_CLIENT_ID')
-GITHUB_CLIENT_SECRET = os.getenv('GITHUB_CLIENT_SECRET')
-REDIRECT_URI = os.getenv('REDIRECT_URI')
+# Veritabanı bağlantısı kurma
+def get_db_connection():
+    try:
+        conn = mysql.connector.connect(**db_config)
+        if conn.is_connected():
+            return conn
+    except Error as e:
+        print(f"Veritabanı bağlantı hatası: {e}")
+        return None
 
-# Airtable'a kayıt ekleme
-@app.route('/add_record', methods=['POST'])
-def add_record():
+# Kullanıcıları veritabanından al
+def get_user(email):
+    conn = get_db_connection()
+    if conn is None:
+        return None
+
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
+    user = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return user
+
+# Hesap oluşturma
+@app.route('/create_account', methods=['POST'])
+def create_account():
     data = request.get_json()
-    name = data.get('name')
-    order = data.get('order')
     email = data.get('email')
-    phone = data.get('phone')
+    password = data.get('password')
     address = data.get('address')
+    phone = data.get('phone')
 
-    airtable_url = f'https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}'
-    headers = {
-        'Authorization': f'Bearer {AIRTABLE_API_KEY}',
-        'Content-Type': 'application/json'
-    }
-    record = {
-        "fields": {
-            "Name": name,
-            "Order": order,
-            "Email": email,
-            "Phone": phone,
-            "Address": address
-        }
-    }
-    response = requests.post(airtable_url, json=record, headers=headers)
-    return jsonify(response.json())
+    if not email or not password or not address or not phone:
+        return jsonify({"success": False, "message": "Tüm alanları doldurun!"})
 
-# Airtable'dan kayıtları alma
-@app.route('/get_records', methods=['GET'])
-def get_records():
-    airtable_url = f'https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}'
-    headers = {
-        'Authorization': f'Bearer {AIRTABLE_API_KEY}',
-        'Content-Type': 'application/json'
-    }
-    response = requests.get(airtable_url, headers=headers)
-    return jsonify(response.json())
+    # Kullanıcıyı veritabanında kontrol et
+    conn = get_db_connection()
+    if conn is None:
+        return jsonify({"success": False, "message": "Veritabanı bağlantı hatası!"})
 
-# GitHub OAuth login
-@app.route('/login')
-def login():
-    return redirect(f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&redirect_uri={REDIRECT_URI}")
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
+    existing_user = cursor.fetchone()
+    if existing_user:
+        cursor.close()
+        conn.close()
+        return jsonify({"success": False, "message": "E-posta zaten kayıtlı!"})
 
-# GitHub OAuth callback
-@app.route('/callback')
-def callback():
-    code = request.args.get('code')
-    response = requests.post(
-        'https://github.com/login/oauth/access_token',
-        headers={'Accept': 'application/json'},
-        data={
-            'client_id': GITHUB_CLIENT_ID,
-            'client_secret': GITHUB_CLIENT_SECRET,
-            'code': code,
-            'redirect_uri': REDIRECT_URI
-        }
+    # Şifreyi hash'le
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+    # Yeni kullanıcıyı ekle
+    cursor.execute(
+        'INSERT INTO users (email, password, address, phone) VALUES (%s, %s, %s, %s)',
+        (email, hashed_password, address, phone)
     )
-    data = response.json()
-    session['access_token'] = data.get('access_token')
-    return redirect(url_for('profile'))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    return jsonify({"success": True, "message": "Hesap başarıyla oluşturuldu!"})
 
-# GitHub profile
-@app.route('/profile')
-def profile():
-    access_token = session.get('access_token')
-    headers = {'Authorization': f'token {access_token}'}
-    user_info = requests.get('https://api.github.com/user', headers=headers).json()
-    return jsonify(user_info)
+# Giriş yapma
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+
+    user = get_user(email)
+    if user and bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+        session['user_email'] = email
+        return jsonify({"success": True, "message": "Giriş başarılı!"})
+    else:
+        return jsonify({"success": False, "message": "Giriş başarısız!"})
+
+# Kullanıcı bilgilerini alma
+@app.route('/get_user_info', methods=['GET'])
+def get_user_info():
+    user_email = session.get('user_email')
+    if not user_email:
+        return jsonify({"success": False, "message": "Kullanıcı oturumu yok!"})
+
+    user = get_user(user_email)
+    if user:
+        return jsonify({
+            "success": True,
+            "email": user["email"],
+            "address": user["address"],
+            "phone": user["phone"]
+        })
+    else:
+        return jsonify({"success": False, "message": "Kullanıcı bulunamadı!"})
+
+# Çıkış yapma
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.pop('user_email', None)
+    return jsonify({"success": True, "message": "Çıkış yapıldı!"})
 
 if __name__ == '__main__':
     app.run(debug=True)
