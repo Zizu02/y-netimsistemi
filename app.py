@@ -4,7 +4,7 @@ import psycopg2
 import uuid
 
 app = Flask(__name__)
-CORS(app)  # Bu satır tüm kökenlere izin verir
+CORS(app, resources={r"/*": {"origins": "*"}})  # Bu satır tüm kökenlere izin verir
 
 # Veritabanı bağlantı ayarları (örnek)
 DATABASE_CONFIG = {
@@ -14,16 +14,8 @@ DATABASE_CONFIG = {
     'host': 'dpg-cretkstsvqrc73fmrhp0-a.frankfurt-postgres.render.com',
 }
 
-@app.route('/get_user_info', methods=['GET', 'OPTIONS'])
+@app.route('/get_user_info', methods=['GET'])
 def get_user_info():
-    if request.method == 'OPTIONS':
-        response = app.make_response('')
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        return response
-
-    # Normal GET isteği işleme kodu
     email = request.args.get('email')
     if not email:
         return jsonify({'error': 'Email parameter is missing'}), 400
@@ -44,15 +36,8 @@ def get_user_info():
         print(f"Error: {e}")
         return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
-@app.route('/create_payment', methods=['POST', 'OPTIONS'])
+@app.route('/create_payment', methods=['POST'])
 def create_payment():
-    if request.method == 'OPTIONS':
-        response = app.make_response('')
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        return response
-
     data = request.json
     email = data.get('email')
     payment_amount = data.get('payment_amount')
@@ -76,5 +61,4 @@ def create_payment():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
 
