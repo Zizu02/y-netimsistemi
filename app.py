@@ -17,6 +17,11 @@ AIRTABLE_TABLE_NAME = os.getenv('AIRTABLE_TABLE_NAME')
 # Airtable API URL
 AIRTABLE_API_URL = f'https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}'
 
+# Kök rotası
+@app.route('/', methods=['GET'])
+def home():
+    return jsonify({"message": "API is live and working!"})
+
 # Airtable'a veri gönder
 def send_to_airtable(email, password, address, phone):
     headers = {
@@ -42,11 +47,6 @@ def create_account():
     password = data.get('password')
     address = data.get('address')
     phone = data.get('phone')
-
-    print('Email:', email)
-    print('Password:', password)
-    print('Address:', address)
-    print('Phone:', phone)
 
     if not email:
         return jsonify({"success": False, "message": "E-posta sağlanmalı!"})
@@ -95,3 +95,4 @@ def get_user_info():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
