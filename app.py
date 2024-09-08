@@ -25,16 +25,22 @@ def send_to_airtable(email, password, address, phone):
     }
     data = {
         "fields": {
-            "Email": email,
-            "Password": password,
-            "Address": address,
-            "Phone": phone
+            "İsim": "Test Kullanıcı",  # Test verisi; gerçek uygulamada burayı kullanıcının adı ile değiştirmelisiniz
+            "Siparişler": "Test Siparişler",  # Test verisi
+            "E-posta": email,
+            "Telefon": phone,
+            "Adres": address,
+            "Ödenen": 100  # Test verisi; gerçek uygulamada bu değeri kullanıcının ödediği tutar ile değiştirmelisiniz
         }
     }
     response = requests.post(AIRTABLE_API_URL, headers=headers, json=data)
-    print("Response Status Code:", response.status_code)
-    print("Response Content:", response.text)
+    
+    # Yanıtı kontrol et
+    print("Status Code:", response.status_code)
+    print("Response JSON:", response.json())
+
     return response.json()
+
 
 
 # Hesap oluşturma
