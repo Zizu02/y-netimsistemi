@@ -44,14 +44,14 @@ def create_account():
         return jsonify({'message': 'User already exists'}), 400
 
     new_user = User(email=email, address=address, phone=phone)
-    new_user.set_password(password)
+    new_user.set_password(password)  # password_hash'ı ayarla
     db.session.add(new_user)
     db.session.commit()
 
     return jsonify(new_user.to_dict()), 201
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
 
+if __name__ == '__main__':
+    app.run(debug=True)
 
 
 @app.route('/get_user_info', methods=['GET'])
