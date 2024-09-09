@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 # Flask uygulamasını ve SQLAlchemy'i başlatın
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://user:password@localhost/dbname'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://depo_user:fyL02LkCj6DJnyf2oE7rLTvgGa2mSVOC@dpg-cretkstsvqrc73fmrhp0-a.frankfurt-postgres.render.com:5432/depo'
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
