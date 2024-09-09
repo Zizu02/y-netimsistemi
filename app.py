@@ -28,23 +28,27 @@ class User(db.Model):
             'email': self.email
         }
 
-@app.route('/create_user', methods=['POST'])
-def create_user():
+@app.route('/create_account', methods=['POST'])
+def create_account():
     data = request.json
     email = data.get('email')
-    
-    if not email:
-        return jsonify({'message': 'Email is required'}), 400
-    
+    password = data.get('password')  # Şifreyi nasıl yöneteceğiniz önemli
+    address = data.get('address')
+    phone = data.get('phone')
+
+    if not email or not password:
+        return jsonify({'message': 'Email and password are required'}), 400
+
     existing_user = User.query.filter_by(email=email).first()
     if existing_user:
         return jsonify({'message': 'User already exists'}), 400
-    
-    new_user = User(email=email)
+
+    new_user = User(email=email, password=password, address=address, phone=phone)
     db.session.add(new_user)
     db.session.commit()
-    
-    return jsonify(new_user.to_dict()), 201
+
+    return jsonify({'success': True}), 201
+
 
 @app.route('/get_user_info', methods=['GET'])
 def get_user_info():
