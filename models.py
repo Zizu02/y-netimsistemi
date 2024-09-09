@@ -13,7 +13,9 @@ migrate = Migrate(app, db)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    name = db.Column(db.String(120), nullable=True)
+    password = db.Column(db.String(120), nullable=False)  # Şifreyi saklamak için ekleyin
+    address = db.Column(db.String(255), nullable=True)  # Adres
+    phone = db.Column(db.String(20), nullable=True)  # Telefon
 
     def __repr__(self):
         return f'<User {self.email}>'
@@ -22,8 +24,10 @@ class User(db.Model):
         return {
             'id': self.id,
             'email': self.email,
-            'name': self.name
+            'address': self.address,
+            'phone': self.phone
         }
+
 
 # Flask-Script Manager'ı başlatın
 manager = Manager(app)
