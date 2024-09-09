@@ -13,9 +13,9 @@ migrate = Migrate(app, db)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)  # Şifreyi saklamak için ekleyin
-    address = db.Column(db.String(255), nullable=True)  # Adres
-    phone = db.Column(db.String(20), nullable=True)  # Telefon
+    password = db.Column(db.String(120), nullable=True)
+    address = db.Column(db.String(250), nullable=True)
+    phone = db.Column(db.String(20), nullable=True)
 
     def __repr__(self):
         return f'<User {self.email}>'
