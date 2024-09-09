@@ -1,14 +1,15 @@
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from flask.cli import FlaskGroup
-from app import app, db
 from flask_migrate import Migrate, MigrateCommand
+from flask_script import Manager
 
+# Flask uygulamasını ve SQLAlchemy'i başlatın
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://user:password@localhost/dbname'
+db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-cli = FlaskGroup(app)
-
-db = SQLAlchemy()
-
+# Kullanıcı modelini tanımlayın
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -24,9 +25,9 @@ class User(db.Model):
             'name': self.name
         }
 
-@cli.command('db')
-def db():
-    pass
+# Flask-Script Manager'ı başlatın
+manager = Manager(app)
+manager.add_command('db', MigrateCommand)
 
 if __name__ == '__main__':
-    cli()
+    manager.run()
