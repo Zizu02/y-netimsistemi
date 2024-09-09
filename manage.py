@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate, MigrateCommand
-from flask_script import Manager
+from flask_migrate import Migrate
+from flask_cors import CORS
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://depo_user:fyL02LkCj6DJnyf2oE7rLTvgGa2mSVOC@dpg-cretkstsvqrc73fmrhp0-a.frankfurt-postgres.render.com/depo'
@@ -9,8 +9,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-manager = Manager(app)
-manager.add_command('db', MigrateCommand)
+CORS(app)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -22,9 +21,5 @@ class User(db.Model):
             'email': self.email
         }
 
-@manager.command
-def run():
-    app.run()
-
 if __name__ == "__main__":
-    manager.run()
+    app.run()
