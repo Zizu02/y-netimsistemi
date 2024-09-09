@@ -1,4 +1,11 @@
 from flask_sqlalchemy import SQLAlchemy
+from flask.cli import FlaskGroup
+from app import app, db
+from flask_migrate import Migrate, MigrateCommand
+
+migrate = Migrate(app, db)
+
+cli = FlaskGroup(app)
 
 db = SQLAlchemy()
 
@@ -16,3 +23,10 @@ class User(db.Model):
             'email': self.email,
             'name': self.name
         }
+
+@cli.command('db')
+def db():
+    pass
+
+if __name__ == '__main__':
+    cli()
