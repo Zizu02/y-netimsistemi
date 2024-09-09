@@ -4,6 +4,8 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 
 app = Flask(__name__)
+
+# CORS yapılandırması
 CORS(app, resources={r"/*": {"origins": "https://sapphire-algae-9ajt.squarespace.com"}})
 
 # Veritabanı URL'nizi buraya ekleyin
@@ -41,16 +43,8 @@ def create_user():
     
     return jsonify(new_user.to_dict()), 201
 
-@app.route('/get_user_info', methods=['GET', 'OPTIONS'])
+@app.route('/get_user_info', methods=['GET'])
 def get_user_info():
-    if request.method == 'OPTIONS':
-        response = app.make_response('')
-        response.headers['Access-Control-Allow-Origin'] = 'https://sapphire-algae-9ajt.squarespace.com'
-        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        response.headers['Access-Control-Allow-Credentials'] = 'true'
-        return response
-
     email = request.args.get('email')
     if not email:
         return jsonify({'message': 'Email is required'}), 400
